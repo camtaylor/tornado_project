@@ -6,7 +6,7 @@ def main():
   http_client = httpclient.HTTPClient()
   for i in range(5):
     try:
-      response = http_client.fetch("http://localhost:64839/")
+      response = http_client.fetch("http://localhost:64839/startworker")
       print response.body
     except httpclient.HTTPError, e:
       print "Error:", e
