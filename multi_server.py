@@ -7,9 +7,6 @@ A tornado web service for handling TaskQueue request from application servers.
 import tornado.httpserver
 import tornado.ioloop
 import tornado.web
-
-import threading
-import multiprocessing
 import time
 
 
@@ -45,7 +42,7 @@ class MultiprocessHandler(tornado.web.RequestHandler):
     response = self._q.get(False)
     tornado.ioloop.IOLoop.add_callback(lambda: self._callback(response))
 
-class StopWorkerHandler(MultiprocessHandler):
+class StopWorkerHandler(tornado.web.RequestHandler):
   """ Stops task queue workers for an app if they are running. """
   @tornado.web.asynchronous
   def post(self):
@@ -68,7 +65,7 @@ class StopWorkerHandler(MultiprocessHandler):
     self.write('{"status":"up"}')
     self.finish()
 
-class StartWorkerHandler(MultiprocessHandler):
+class StartWorkerHandler(tornado.web.RequestHandler):
   """ Starts task queue workers for an app if they are not running. """
   @tornado.web.asynchronous
   def post(self):
@@ -90,7 +87,7 @@ class StartWorkerHandler(MultiprocessHandler):
     self.write('{"status":"up"}')
     self.finish()
 
-class MainHandler(MultiprocessHandler):
+class MainHandler(tornado.web.RequestHandler):
   """
   Defines what to do when the webserver receieves different
   types of HTTP requests.
@@ -141,18 +138,18 @@ def main():
   """ Main function which initializes and starts the tornado server. """
   tq_application = tornado.web.Application([
     # Takes json from AppController
-    (r"/startworker", StartWorkerHandler, dict(threaded=True)),
-    (r"/stopworker", StopWorkerHandler, dict(threaded=True)),
+    (r"/startworker", StartWorkerHandler),
+    (r"/stopworker", StopWorkerHandler),
     # Takes protocol buffers from the AppServers
-    (r"/*", MainHandler, dict(threaded=True))
+    (r"/*", MainHandler)
   ])
 
   server = tornado.httpserver.HTTPServer(tq_application)
-  server.listen(SERVER_PORT)
+  server.bind(SERVER_PORT)
   while 1:
     try:
-      print "Starting TaskQueue server on port %d" % SERVER_PORT
-      tornado.ioloop.IOLoop.instance().start()
+     server.start(0)
+     tornado.ioloop.IOLoop.instance().start()
     except KeyboardInterrupt:
       print "Server interrupted by user, terminating..."
       exit(1)
