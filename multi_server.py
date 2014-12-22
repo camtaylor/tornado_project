@@ -16,32 +16,6 @@ SERVER_PORT = 64839
 # Global for Distributed TaskQueue.
 task_queue = None
 
-class MultiprocessHandler(tornado.web.RequestHandler):
-  """ A multiprocess handler can be called with threaded = true
-      or false
-  """
-  def initialize(self, threaded):
-    self._threaded = threaded
-    self._q = multiprocessing.Queue
-  def start_process(self, worker, callback):
-    """starts process and watcher thread"""
-    self._callback = callback
-
-    if self._threaded:
-      multiprocessing.Process(target=worker , args=(self._q)).start()
-      threading.Thread(target=self._watcher).start()
-    else:
-      worker(self._q)
-      self.watcher()
-
-  def _watcher(self):
-    """watches the queue for process result"""
-    while self._q.empty():
-      time.sleep(0)
-
-    response = self._q.get(False)
-    tornado.ioloop.IOLoop.add_callback(lambda: self._callback(response))
-
 class StopWorkerHandler(tornado.web.RequestHandler):
   """ Stops task queue workers for an app if they are running. """
   @tornado.web.asynchronous
